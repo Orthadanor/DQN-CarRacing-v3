@@ -159,9 +159,23 @@ class DQN:
         # 6. compute loss between current Q and target Q
         # 7. backprop
         # ====================================
-        raise NotImplementedError("optimize_model func in DQN class not implemented")
-    
-
+        if len(self.replay_buffer) < 10 * self.batch_size:
+            return False, 0
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size, self.device)
+        # Compute current Q values
+        q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        # Compute target Q values
+        with torch.no_grad():
+            next_q_values = self.model(next_states).max(1)[0]
+            target_q_values = rewards + (1 - dones.float()) * self.gamma * next_q_values
+        # Compute loss
+        loss = self.loss_fn(q_values, target_q_values)
+        # Backpropagation
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        
+        return True, loss.item()
 
         # ========== YOUR CODE ENDS ==========
             
@@ -183,9 +197,13 @@ class DQN:
         #  - if probability epsilon: random action
         #  - else: greedy action
         # ====================================
-        raise NotImplementedError("sample_action func in DQN class not implemented")
-    
-
+        if random.random() < epsilon:
+            index = self.env.action_space.sample()
+        else:
+            with torch.no_grad():
+                state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                q_values = self.model(state_tensor)
+                index = q_values.argmax().item()
 
         # ========== YOUR CODE ENDS ==========
         return index
@@ -278,10 +296,14 @@ class HardUpdateDQN(DQN):
         # TODO:
         # fill in the initialization and synchronization of the target model weights
         # ====================================
-        raise NotImplementedError("HardUpdateDQN class not implemented")
-    
-
-
+        self.target_model = model(
+            self.observation_space,
+            self.env.action_space.n, **model_kwargs
+            ).to(self.device)
+        self.target_model.eval()
+        self.update_freq = update_freq
+        self.i_update = 0
+        
         # ========== YOUR CODE ENDS ==========
         
     def _optimize_model(self):
@@ -296,9 +318,26 @@ class HardUpdateDQN(DQN):
         # hint: you can copy over most of the code from the parent class
         # and only change one line
         # ====================================
-        raise NotImplementedError("optimize_model func in HardUpdateDQN class not implemented")     
-    
+        if len(self.replay_buffer) < 10 * self.batch_size:
+            return False, 0
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size, self.device)
+        # Compute current Q values
+        q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        # Compute target Q values
+        with torch.no_grad():
+            next_actions = self.model(next_states).argmax(1, keepdim=True)
+            self._update_model()  # Update the target model
+            next_q_values = self.target_model(next_states).gather(1, next_actions).squeeze(1)
 
+            target_q_values = rewards + (1 - dones.float()) * self.gamma * next_q_values
+        # Compute loss
+        loss = self.loss_fn(q_values, target_q_values)
+        # Backpropagation
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        
+        return True, loss.item()   
 
         # ========== YOUR CODE ENDS ==========
 
@@ -330,8 +369,8 @@ class SoftUpdateDQN(HardUpdateDQN):
         # ========== YOUR CODE HERE ==========
         # TODO
         # ====================================
-        raise NotImplementedError("update_model func in SoftUpdateDQN class not implemented")
-    
-
-
+        for target_param, local_param in zip(self.target_model.parameters(), self.model.parameters()):
+            target_param.data.copy_(
+                target_param.data * (1.0 - self.tau) + local_param.data * self.tau
+            )
         # ========== YOUR CODE ENDS ==========

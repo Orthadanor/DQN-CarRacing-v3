@@ -1,0 +1,31 @@
+# Python cache
+__pycache__/
+*.pyc
+*.py[cod]
+# *.pyo
+# *.pyd
+# *.so
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+
+runs/
+
+# WandB logs
+wandb/
+*.wandb
+**/*.log
+
+# Model checkpoints
+
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+save/
+
+# models/bigram/*.csv
+# models/minigpt/*.csv

@@ -22,11 +22,10 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
         # ========== YOUR CODE HERE ==========
         # TODO:
-        # self.linear1 = 
-        # self.output = 
-        # self.non_linear = 
+        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.output = nn.Linear(hidden_size, action_size)
+        self.non_linear = non_linear()
         # ====================================
-        raise NotImplementedError("MLP not implemented")
     
 
 
@@ -34,7 +33,8 @@ class MLP(nn.Module):
 
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # ========== YOUR CODE HERE ==========
-        raise NotImplementedError("MLP forward not implemented")
+        output = self.output(self.non_linear(self.linear1(x)))
+        return output
     
 
 
@@ -61,17 +61,50 @@ class Nature_Paper_Conv(nn.Module):
         """
         super(Nature_Paper_Conv, self).__init__()
         # ========== YOUR CODE HERE ==========
-        raise NotImplementedError("Nature_Paper_Conv not implemented")
-    
+
+        self.CNN = nn.Sequential(
+            nn.Conv2d(
+                in_channels=input_size[0], 
+                out_channels=32, 
+                kernel_size=8, 
+                stride=4
+            ),
+            nn.ReLU(),
+            nn.Conv2d(
+                in_channels=32, 
+                out_channels=64, 
+                kernel_size=4, 
+                stride=2
+            ),
+            nn.ReLU(),
+            nn.Conv2d(
+                in_channels=64, 
+                out_channels=64, 
+                kernel_size=3, 
+                stride=1
+            ),
+            nn.ReLU()
+        )
+        
+        self.MLP = MLP(
+            input_size=64*7*7, 
+            action_size=action_size, 
+            hidden_size=512,
+            non_linear=nn.ReLU
+        )
 
 
         # ========== YOUR CODE ENDS ==========
 
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # ========== YOUR CODE HERE ==========
-        raise NotImplementedError("Nature_Paper_Conv forward not implemented")
+        hidden_output = self.CNN(x)
+        
+        # Flatten the output of the last convolutional layer
+        post_conv_output = hidden_output.view(hidden_output.size(0), -1)
+        # fc_input_size = post_conv_output.size(1)
     
-
+        output = self.MLP(post_conv_output)
     
         # ========== YOUR CODE ENDS ==========
-        return x
+        return output

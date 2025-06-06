@@ -35,7 +35,7 @@ class EnvWrapper(gym.Wrapper):
         self.observation_space = gym.spaces.Box(
             low=0,
             high=1,
-            shape=(stack_frames, 84, 84),
+            shape=(stack_frames, 84, 84), # Stacked frames shape (stack_frames, height, width)
             dtype=np.float32
         )
         self.do_nothing_action = do_nothing_action
